@@ -89,7 +89,7 @@
 
   .tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 4px;
     background: var(--line);
@@ -279,10 +279,51 @@
   .hrow span { min-width: 0; overflow-wrap: anywhere; color: var(--muted); }
   .hrow b { flex: none; font-variant-numeric: tabular-nums; }
 
+  /* Resumen y Precios */
+  .rwrap { padding-bottom: 40px; }
+  .sel {
+    width: 100%;
+    height: 46px;
+    margin-top: 12px;
+    padding: 0 10px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    background: var(--field);
+    color: var(--field-fg);
+  }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat .k { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { margin-top: 2px; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .stat.wide .v { font-size: 34px; }
+  .prow { display: grid; grid-template-columns: minmax(0, 1fr) 40px 62px 92px; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .prow span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .prow span:nth-child(2), .prow span:nth-child(3) { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .prow b { text-align: right; font-variant-numeric: tabular-nums; }
+  .prow.tot { font-weight: 700; font-size: 14.5px; }
+  .prow.tot span:nth-child(2), .prow.tot span:nth-child(3) { color: var(--fg); }
+  .prow.heads { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--line); }
+  .prow.heads b { font-weight: 600; }
+  .ocard { background: var(--card); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  .ocard summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; font-weight: 600; font-size: 14.5px; }
+  .ocard summary::-webkit-details-marker { display: none; }
+  .ocard summary b { font-variant-numeric: tabular-nums; }
+  .obody { padding: 0 12px 12px; }
+  .obody .hrow span { color: var(--fg); }
+  .osub { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+  .obody .mini { margin-top: 10px; color: var(--err); }
+  .precio { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .precio span { min-width: 0; overflow-wrap: anywhere; }
+  .precio .adj { width: 130px; flex: none; }
+
   /* En pantalla ancha (compu): empanadas a la izquierda y pizzas/discos a la derecha, todo a la vista */
   @media (min-width: 900px) {
     body { max-width: 1040px; }
-    .tabs, #viewAjustes { max-width: 560px; margin-inline: auto; }
+    .tabs, #viewAjustes, #viewResumen, #viewPrecios { max-width: 560px; margin-inline: auto; }
     .list { flex-direction: row; align-items: flex-start; gap: 20px; padding-bottom: 16px; }
     .pcol { flex: 1; }
     .pcol + .pcol > .cols { display: grid; }
@@ -305,6 +346,8 @@
 <body>
   <div class="tabs" role="tablist">
     <button class="tab on" id="tabPedido" type="button" role="tab" aria-selected="true">Pedido</button>
+    <button class="tab" id="tabResumen" type="button" role="tab" aria-selected="false">Resumen</button>
+    <button class="tab" id="tabPrecios" type="button" role="tab" aria-selected="false">Precios</button>
     <button class="tab" id="tabAjustes" type="button" role="tab" aria-selected="false">Ajustes</button>
   </div>
 
@@ -316,6 +359,57 @@
       <button class="ghost" id="clear" type="button">Borrar stock</button>
     </div>
     <div class="list" id="list"></div>
+  </main>
+
+  <main id="viewResumen" hidden="">
+    <section id="rLock" class="lock-wrap">
+      <h1>Resumen</h1>
+      <p class="lead">Ingresá el PIN para ver cuánto se gastó en pedidos.</p>
+      <form class="lock" id="rLockForm">
+        <input class="pin" id="rPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="········" aria-label="PIN del resumen">
+        <button class="solid" type="submit">Entrar</button>
+        <p class="msg" id="rLockMsg" role="status"></p>
+      </form>
+    </section>
+
+    <section id="rBody" class="rwrap" hidden="">
+      <h1>Resumen de pedidos</h1>
+      <select class="sel" id="rMonth" aria-label="Mes"></select>
+      <p class="msg" id="rMsg" role="status"></p>
+      <div id="rData" hidden="">
+        <div class="stats">
+          <div class="stat wide"><div class="k">Gasto del mes</div><div class="v" id="stTotal">—</div></div>
+          <div class="stat"><div class="k">Pedidos</div><div class="v" id="stOrders">—</div></div>
+          <div class="stat"><div class="k">Cajas</div><div class="v" id="stBoxes">—</div></div>
+          <div class="stat"><div class="k">Unidades</div><div class="v" id="stUnits">—</div></div>
+        </div>
+        <div class="group">Qué se pidió en el mes</div>
+        <div id="rProducts"></div>
+        <button class="solid" id="rExport" type="button" style="width:100%;margin-top:12px">Exportar a Excel</button>
+        <div class="group">Pedidos del mes</div>
+        <div id="rOrders"></div>
+      </div>
+    </section>
+  </main>
+
+  <main id="viewPrecios" hidden="">
+    <section id="pLock" class="lock-wrap">
+      <h1>Precios</h1>
+      <p class="lead">Ingresá el PIN para ver y cambiar los precios.</p>
+      <form class="lock" id="pLockForm">
+        <input class="pin" id="pPinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="········" aria-label="PIN de precios">
+        <button class="solid" type="submit">Entrar</button>
+        <p class="msg" id="pLockMsg" role="status"></p>
+      </form>
+    </section>
+
+    <section id="pBody" class="rwrap" hidden="">
+      <h1>Precios por unidad</h1>
+      <p class="lead">Lo que cuesta cada unidad (una empanada, un disco). El pedido se valoriza como cajas × unidades de la caja × precio. Si los precios cambian, corregilos acá: los pedidos ya cargados conservan el precio que tenían cuando se cargaron.</p>
+      <div id="rPrices"></div>
+      <p class="msg" id="rPriceMsg" role="status"></p>
+      <button class="solid" id="rPriceSave" type="button" style="width:100%">Guardar precios</button>
+    </section>
   </main>
 
   <main id="viewAjustes" hidden="">
@@ -348,7 +442,7 @@
   </main>
 
   <div class="bar" id="barPedido">
-    <div class="bar-in"><button class="big" id="copy" type="button">Copiar pedido</button></div>
+    <div class="bar-in"><button class="big" id="load" type="button">Cargar pedido</button></div>
   </div>
   <div class="bar" id="barAjustes" hidden="">
     <div class="bar-in">
@@ -488,7 +582,8 @@ function compute() {
 
 function $(id) { return document.getElementById(id); }
 const refs = {};
-let copyBtn;
+let loadBtn;
+let loadFlash = false;
 
 function buildPedido() {
   $('title').textContent = DAYS[orderDow].charAt(0).toUpperCase() + DAYS[orderDow].slice(1);
@@ -564,47 +659,9 @@ function paint() {
     if (q === null) { missing++; o.textContent = '—'; o.className = 'out zero'; }
     else { o.textContent = q; o.className = 'out' + (q === 0 ? ' zero' : ''); }
   });
-  if (missing) {
-    copyBtn.textContent = 'Faltan ' + missing + ' por contar';
-    copyBtn.classList.add('off');
-    copyBtn.setAttribute('aria-disabled', 'true');
-  } else {
-    copyBtn.textContent = 'Copiar pedido';
-    copyBtn.classList.remove('off');
-    copyBtn.removeAttribute('aria-disabled');
-  }
-}
-
-function onCopy() {
-  const boxes = compute();
-  const first = DATA.find(function (it) { return boxes[it.name] === null; });
-  if (first) {
-    const el = refs[first.name].input;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    el.focus({ preventScroll: true });
-    return;
-  }
-  const lines = ['PEDIDO ' + DAYS[orderDow].toUpperCase() + ' (llega ' + ARRIVES[cycle] + ')', ''];
-  let any = false;
-  DATA.forEach(function (it) {
-    const b = boxes[it.name];
-    if (b > 0) {
-      const p = packOf(it);
-      lines.push(it.name + ': ' + b + (b === 1 ? ' caja' : ' cajas') + ' de ' + p + ' (' + (b * p) + ' u.)');
-      any = true;
-    }
-  });
-  if (!any) lines.push('Sin faltantes.');
-  const text = lines.join('\n');
-  const done = function (msg) {
-    copyBtn.textContent = msg;
-    setTimeout(paint, 1800);
-  };
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function () { done('Copiado'); }, function () { done('No se pudo copiar'); });
-  } else {
-    done('No se pudo copiar');
-  }
+  loadBtn.classList.toggle('off', missing > 0);
+  if (missing) loadBtn.setAttribute('aria-disabled', 'true'); else loadBtn.removeAttribute('aria-disabled');
+  if (!loadFlash) loadBtn.textContent = missing ? 'Faltan ' + missing + ' por contar' : 'Cargar pedido';
 }
 
 /* ---------- Ajustes ---------- */
@@ -723,14 +780,39 @@ function buildHist() {
 
 function showTab(which) {
   const ped = which === 'pedido';
+  const res = which === 'resumen';
+  const pre = which === 'precios';
+  const aju = which === 'ajustes';
   $('viewPedido').hidden = !ped;
-  $('viewAjustes').hidden = ped;
-  $('tabPedido').classList.toggle('on', ped);
-  $('tabAjustes').classList.toggle('on', !ped);
-  $('tabPedido').setAttribute('aria-selected', String(ped));
-  $('tabAjustes').setAttribute('aria-selected', String(!ped));
+  $('viewResumen').hidden = !res;
+  $('viewPrecios').hidden = !pre;
+  $('viewAjustes').hidden = !aju;
+  [['tabPedido', ped], ['tabResumen', res], ['tabPrecios', pre], ['tabAjustes', aju]].forEach(function (t) {
+    $(t[0]).classList.toggle('on', t[1]);
+    $(t[0]).setAttribute('aria-selected', String(t[1]));
+  });
   $('barPedido').hidden = !ped;
-  if (ped) { $('barAjustes').hidden = true; return; }
+  $('barAjustes').hidden = true;
+  // Resumen y Precios se vuelven a bloquear apenas se sale de esas dos pestañas.
+  if (!res && !pre) {
+    resUnlockAt = 0;
+    try { sessionStorage.removeItem('bp_unlock_res'); } catch (e) {}
+  }
+  if (ped) return;
+  if (res) {
+    const openR = resUnlocked();
+    $('rLock').hidden = openR;
+    $('rBody').hidden = !openR;
+    if (openR) openResumen(); else $('rPinInput').focus();
+    return;
+  }
+  if (pre) {
+    const openP = resUnlocked();
+    $('pLock').hidden = openP;
+    $('pBody').hidden = !openP;
+    if (openP) openPrecios(); else $('pPinInput').focus();
+    return;
+  }
   const open = unlocked();
   $('lock').hidden = open;
   $('editor').hidden = !open;
@@ -810,9 +892,458 @@ async function refreshAdj() {
   } catch (e) { /* sin conexión: se sigue con los ajustes guardados en este dispositivo */ }
 }
 
+/* ---------- Cargar pedido + Resumen ---------- */
+// Cada pedido cargado se guarda con fecha y hora en Supabase, un registro por mes ("pedidos:log:AAAA-MM").
+// Los precios son por UNIDAD (una empanada, un disco): una caja vale unidades de la caja × precio.
+// Se guardan aparte ("pedidos:precios") y cada pedido se queda con el precio que tenía al cargarse.
+const RESUMEN_PIN = '40729349';
+const PRECIOS_KEY = 'pedidos:precios';
+const PRECIOS_CACHE = 'bp_precios_cache';
+const LOG_PREFIX = 'pedidos:log:';
+const DEFAULT_PRECIOS = {
+  'empanada': 750,
+  'Disco molde chico (Sin Muzzarella)': 2650,
+  'Disco molde grande (Sin Muzzarella)': 4950,
+  'Disco piedra chico (Sin Muzzarella)': 2200,
+  'Disco piedra grande (Sin Muzzarella)': 3850
+};
+const MONTHS_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONEY = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
+function money(n) { return '$ ' + MONEY.format(n); }
+
+function mergePrecios(v) {
+  const out = Object.assign({}, DEFAULT_PRECIOS);
+  Object.keys(DEFAULT_PRECIOS).forEach(function (k) {
+    if (v && typeof v[k] === 'number' && v[k] > 0) out[k] = v[k];
+  });
+  return out;
+}
+let PRECIOS = mergePrecios(null);
+try { PRECIOS = mergePrecios(JSON.parse(localStorage.getItem(PRECIOS_CACHE) || 'null')); } catch (e) {}
+
+function precioDe(it) { return PRECIOS[it.type === 'empanada' ? 'empanada' : it.name]; }
+// Lo que vale una línea de pedido: cajas × unidades por caja × precio de la unidad.
+function lineTotal(l) { return l.cajas * l.pack * l.precio; }
+
+async function readKey(key) {
+  const { data, error } = await withTimeout(sb.from('kv_store').select('value').eq('key', key).maybeSingle(), 8000);
+  if (error) throw error;
+  return data ? data.value : null;
+}
+async function writeKey(key, value) {
+  const { error } = await withTimeout(sb.from('kv_store').upsert({ key: key, value: value }), 8000);
+  if (error) throw error;
+}
+
+async function refreshPrecios() {
+  try {
+    const v = await readKey(PRECIOS_KEY);
+    if (v && typeof v === 'object') {
+      PRECIOS = mergePrecios(v);
+      try { localStorage.setItem(PRECIOS_CACHE, JSON.stringify(PRECIOS)); } catch (e) {}
+    }
+    return true;
+  } catch (e) { return false; }
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function flashLoad(msg) {
+  loadFlash = true;
+  loadBtn.textContent = msg;
+  setTimeout(function () { loadFlash = false; paint(); }, 2200);
+}
+
+let loadingOrder = false;
+async function onLoadPedido() {
+  if (loadingOrder) return;
+  const boxes = compute();
+  const first = DATA.find(function (it) { return boxes[it.name] === null; });
+  if (first) {
+    const el = refs[first.name].input;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.focus({ preventScroll: true });
+    return;
+  }
+  if (!DATA.some(function (it) { return boxes[it.name] > 0; })) { flashLoad('No hay nada para pedir'); return; }
+
+  loadingOrder = true;
+  loadFlash = true;
+  loadBtn.textContent = 'Guardando…';
+  try {
+    await refreshPrecios();
+    const items = DATA.filter(function (it) { return boxes[it.name] > 0; }).map(function (it) {
+      return { n: it.name, t: it.type, cajas: boxes[it.name], pack: packOf(it), precio: precioDe(it) };
+    });
+    const fecha = todayKey();
+    const key = LOG_PREFIX + fecha.slice(0, 7);
+    // Se lee el mes antes de escribir; si la lectura falla se corta acá y no se pisa nada.
+    const cur = await readKey(key);
+    const orders = (cur && Array.isArray(cur.orders)) ? cur.orders.slice() : [];
+    const dup = orders.find(function (o) { return o.fecha === fecha; });
+    if (dup && !confirm('Hoy ya se cargó un pedido a las ' + dup.hora + '. ¿Cargar otro?')) {
+      loadingOrder = false;
+      loadFlash = false;
+      paint();
+      return;
+    }
+    orders.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      ts: new Date().toISOString(),
+      fecha: fecha,
+      hora: nowHHMM(),
+      para: DAYS[orderDow],
+      llega: ARRIVES[cycle],
+      items: items
+    });
+    await writeKey(key, { orders: orders });
+    loadingOrder = false;
+    flashLoad('Pedido cargado ✓');
+  } catch (e) {
+    loadingOrder = false;
+    flashLoad('No se pudo cargar');
+  }
+}
+
+let resUnlockAt = 0;
+try { resUnlockAt = parseInt(sessionStorage.getItem('bp_unlock_res') || '0', 10) || 0; } catch (e) {}
+function resUnlocked() { return Date.now() - resUnlockAt < UNLOCK_MS; }
+function setResUnlocked() {
+  resUnlockAt = Date.now();
+  try { sessionStorage.setItem('bp_unlock_res', String(resUnlockAt)); } catch (e) {}
+}
+
+let monthsBuilt = false;
+function buildMonths() {
+  if (monthsBuilt) return;
+  monthsBuilt = true;
+  const sel = $('rMonth');
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const o = document.createElement('option');
+    o.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const name = MONTHS_ES[d.getMonth()];
+    o.textContent = name.charAt(0).toUpperCase() + name.slice(1) + ' ' + d.getFullYear();
+    sel.appendChild(o);
+  }
+}
+
+// ---- precios editables ----
+const PRICE_ROWS = [['empanada', 'Empanada (todos los sabores) · caja de 48']].concat(
+  DATA.filter(function (it) { return it.type === 'disco'; }).map(function (it) {
+    return [it.name, it.name.replace(' (Sin Muzzarella)', '') + ' · caja de ' + PACK[it.name]];
+  })
+);
+const priceInputs = {};
+let pricesDirty = false;
+function priceText(v) { return String(v).replace('.', ','); }
+function parsePrice(s) {
+  const t = s.trim().replace(/\./g, '').replace(',', '.');
+  return t === '' ? NaN : Number(t);
+}
+function fillPrices() {
+  if (pricesDirty) return;
+  const host = $('rPrices');
+  host.textContent = '';
+  PRICE_ROWS.forEach(function (r) {
+    const row = document.createElement('label');
+    row.className = 'precio';
+    const sp = document.createElement('span');
+    sp.textContent = r[1];
+    const inp = document.createElement('input');
+    inp.className = 'adj';
+    inp.type = 'text';
+    inp.inputMode = 'decimal';
+    inp.autocomplete = 'off';
+    inp.setAttribute('aria-label', 'Precio de ' + r[1]);
+    inp.value = priceText(PRECIOS[r[0]]);
+    inp.addEventListener('input', function () {
+      const clean = inp.value.replace(/[^0-9.,]/g, '');
+      if (clean !== inp.value) inp.value = clean;
+      pricesDirty = true;
+    });
+    inp.addEventListener('focus', function () { inp.select(); });
+    priceInputs[r[0]] = inp;
+    row.append(sp, inp);
+    host.appendChild(row);
+  });
+}
+
+async function onSavePrecios() {
+  const msg = $('rPriceMsg');
+  const next = {};
+  for (let i = 0; i < PRICE_ROWS.length; i++) {
+    const k = PRICE_ROWS[i][0];
+    const v = parsePrice(priceInputs[k].value);
+    if (!(v > 0)) { setMsg(msg, 'Revisá el precio de: ' + PRICE_ROWS[i][1] + '.', 'err'); return; }
+    next[k] = v;
+  }
+  if (Object.keys(next).every(function (k) { return next[k] === PRECIOS[k]; })) {
+    setMsg(msg, 'No hay cambios para guardar.', '');
+    return;
+  }
+  setMsg(msg, 'Guardando…', '');
+  try {
+    await writeKey(PRECIOS_KEY, next);
+    PRECIOS = mergePrecios(next);
+    try { localStorage.setItem(PRECIOS_CACHE, JSON.stringify(PRECIOS)); } catch (e) {}
+    pricesDirty = false;
+    setMsg(msg, 'Precios guardados. Valen para los pedidos que cargues desde ahora.', 'ok');
+  } catch (e) {
+    setMsg(msg, 'No se pudo guardar. Revisá la conexión y probá de nuevo.', 'err');
+  }
+}
+function openPrecios() {
+  pricesDirty = false;
+  setMsg($('rPriceMsg'), '', '');
+  fillPrices();
+  refreshPrecios().then(fillPrices);
+}
+
+// ---- resumen del mes ----
+let monthOrders = [];
+function openResumen() {
+  buildMonths();
+  loadMonth();
+}
+
+async function loadMonth() {
+  const m = $('rMonth').value;
+  setMsg($('rMsg'), 'Cargando…', '');
+  try {
+    const v = await readKey(LOG_PREFIX + m);
+    if (m !== $('rMonth').value) return;
+    monthOrders = (v && Array.isArray(v.orders)) ? v.orders : [];
+    setMsg($('rMsg'), '', '');
+    $('rData').hidden = false;
+    renderMonth();
+  } catch (e) {
+    if (m !== $('rMonth').value) return;
+    $('rData').hidden = true;
+    setMsg($('rMsg'), 'No se pudieron leer los pedidos. Revisá la conexión y volvé a elegir el mes.', 'err');
+  }
+}
+
+function orderTotal(o) {
+  return (o.items || []).reduce(function (s, l) { return s + lineTotal(l); }, 0);
+}
+
+function addEmpty(host, text) {
+  const p = document.createElement('p');
+  p.className = 'lead';
+  p.textContent = text;
+  host.appendChild(p);
+}
+
+function prow(cls, a, b, c, d) {
+  const r = document.createElement('div');
+  r.className = 'prow' + (cls ? ' ' + cls : '');
+  const x = document.createElement('span'); x.textContent = a;
+  const y = document.createElement('span'); y.textContent = b;
+  const z = document.createElement('span'); z.textContent = c;
+  const w = document.createElement('b'); w.textContent = d;
+  r.append(x, y, z, w);
+  return r;
+}
+
+// Lo que se ve en pantalla y lo que baja al Excel salen de este mismo cálculo.
+let monthAgg = null;
+function renderMonth() {
+  let total = 0, cajas = 0, unidades = 0;
+  const by = {};
+  monthOrders.forEach(function (o) {
+    (o.items || []).forEach(function (l) {
+      total += lineTotal(l);
+      cajas += l.cajas;
+      unidades += l.cajas * l.pack;
+      const b = by[l.n] || (by[l.n] = { t: l.t, cajas: 0, unidades: 0, monto: 0 });
+      b.cajas += l.cajas;
+      b.unidades += l.cajas * l.pack;
+      b.monto += lineTotal(l);
+    });
+  });
+  monthAgg = { by: by, total: total, cajas: cajas, unidades: unidades };
+  $('rExport').hidden = !monthOrders.length;
+  $('stTotal').textContent = money(total);
+  $('stOrders').textContent = String(monthOrders.length);
+  $('stBoxes').textContent = MONEY.format(cajas);
+  $('stUnits').textContent = MONEY.format(unidades);
+
+  const prods = $('rProducts');
+  prods.textContent = '';
+  const names = Object.keys(by).sort(function (a, b) {
+    const ia = DATA.findIndex(function (it) { return it.name === a; });
+    const ib = DATA.findIndex(function (it) { return it.name === b; });
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+  });
+  if (!names.length) {
+    addEmpty(prods, 'Todavía no se cargó ningún pedido en este mes.');
+  } else {
+    prods.appendChild(prow('heads', 'Producto', 'Cajas', 'Unid.', 'Gasto'));
+    [['empanada', 'Empanadas'], ['disco', 'Discos']].forEach(function (g) {
+      const ns = names.filter(function (n) { return by[n].t === g[0]; });
+      if (!ns.length) return;
+      const sum = function (k) { return ns.reduce(function (s, n) { return s + by[n][k]; }, 0); };
+      prods.appendChild(prow('tot', g[1], MONEY.format(sum('cajas')), MONEY.format(sum('unidades')), money(sum('monto'))));
+      ns.forEach(function (n) {
+        prods.appendChild(prow('', n.replace(' (Sin Muzzarella)', ''), MONEY.format(by[n].cajas), MONEY.format(by[n].unidades), money(by[n].monto)));
+      });
+    });
+  }
+
+  const host = $('rOrders');
+  host.textContent = '';
+  if (!monthOrders.length) { addEmpty(host, 'Sin pedidos.'); return; }
+  monthOrders.slice().sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); }).forEach(function (o) {
+    const det = document.createElement('details');
+    det.className = 'ocard';
+    const sum = document.createElement('summary');
+    const parts = String(o.fecha).split('-');
+    const dd = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const l = document.createElement('span');
+    l.textContent = DAYS_SHORT[dd.getDay()] + ' ' + parts[2] + '/' + parts[1] + ' · ' + o.hora;
+    const t = document.createElement('b');
+    t.textContent = money(orderTotal(o));
+    sum.append(l, t);
+    det.appendChild(sum);
+
+    const body = document.createElement('div');
+    body.className = 'obody';
+    const sub = document.createElement('p');
+    sub.className = 'osub';
+    sub.textContent = 'Pedido de ' + o.para + ' · llega ' + o.llega;
+    body.appendChild(sub);
+    (o.items || []).forEach(function (it) {
+      const r = document.createElement('div');
+      r.className = 'hrow';
+      const a = document.createElement('span');
+      a.textContent = it.n.replace(' (Sin Muzzarella)', '') + ' · ' + it.cajas + (it.cajas === 1 ? ' caja' : ' cajas') + ' × ' + it.pack + ' u. × ' + money(it.precio);
+      const b = document.createElement('b');
+      b.textContent = money(lineTotal(it));
+      r.append(a, b);
+      body.appendChild(r);
+    });
+    const del = document.createElement('button');
+    del.className = 'mini';
+    del.type = 'button';
+    del.textContent = 'Borrar este pedido';
+    del.addEventListener('click', function () { deleteOrder(o.id); });
+    body.appendChild(del);
+    det.appendChild(body);
+    host.appendChild(det);
+  });
+}
+
+async function deleteOrder(id) {
+  if (!confirm('¿Borrar este pedido del resumen? No se puede deshacer.')) return;
+  const m = $('rMonth').value;
+  setMsg($('rMsg'), 'Borrando…', '');
+  try {
+    const cur = await readKey(LOG_PREFIX + m);
+    if (!cur || !Array.isArray(cur.orders)) throw new Error('sin datos');
+    await writeKey(LOG_PREFIX + m, { orders: cur.orders.filter(function (o) { return o.id !== id; }) });
+    await loadMonth();
+  } catch (e) {
+    setMsg($('rMsg'), 'No se pudo borrar. Revisá la conexión y probá de nuevo.', 'err');
+  }
+}
+
+// ---- exportar a Excel (la tabla "Qué se pidió" + el detalle de cada pedido) ----
+// La librería se carga recién al tocar el botón, así un corte de red no afecta al resto de la app.
+let xlsxLoadPromise = null;
+function ensureXLSXLoaded() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  if (xlsxLoadPromise) return xlsxLoadPromise;
+  xlsxLoadPromise = new Promise(function (resolve, reject) {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = function () { resolve(); };
+    script.onerror = function () { xlsxLoadPromise = null; reject(new Error('load failed')); };
+    document.head.appendChild(script);
+    setTimeout(function () { xlsxLoadPromise = null; reject(new Error('timeout')); }, 8000);
+  });
+  return xlsxLoadPromise;
+}
+
+async function exportExcel() {
+  if (!monthAgg || !monthOrders.length) return;
+  const month = $('rMonth').value;
+  const btn = $('rExport');
+  btn.disabled = true;
+  btn.textContent = 'Generando…';
+  try {
+    await ensureXLSXLoaded();
+    const by = monthAgg.by;
+    const names = Object.keys(by).sort(function (a, b) {
+      const ia = DATA.findIndex(function (it) { return it.name === a; });
+      const ib = DATA.findIndex(function (it) { return it.name === b; });
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: lo mismo que se ve en pantalla
+    const rows = [['Producto', 'Cajas', 'Unidades', 'Gasto ($)']];
+    [['empanada', 'Empanadas'], ['disco', 'Discos']].forEach(function (g) {
+      const ns = names.filter(function (n) { return by[n].t === g[0]; });
+      if (!ns.length) return;
+      const sum = function (k) { return ns.reduce(function (s, n) { return s + by[n][k]; }, 0); };
+      rows.push([g[1].toUpperCase(), sum('cajas'), sum('unidades'), sum('monto')]);
+      ns.forEach(function (n) { rows.push([n, by[n].cajas, by[n].unidades, by[n].monto]); });
+    });
+    rows.push(['TOTAL DEL MES', monthAgg.cajas, monthAgg.unidades, monthAgg.total]);
+    rows.push(['Pedidos cargados', monthOrders.length, '', '']);
+    const ws1 = XLSX.utils.aoa_to_sheet(rows);
+    ws1['!cols'] = [{ wch: 36 }, { wch: 10 }, { wch: 12 }, { wch: 16 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+
+    // Hoja 2: una fila por producto de cada pedido, con el precio unitario que tenía
+    const det = [['Fecha', 'Hora', 'Producto', 'Cajas', 'Unidades por caja', 'Unidades', 'Precio unitario ($)', 'Subtotal ($)']];
+    monthOrders.slice().sort(function (a, b) { return String(a.ts).localeCompare(String(b.ts)); }).forEach(function (o) {
+      (o.items || []).forEach(function (l) {
+        det.push([o.fecha, o.hora, l.n, l.cajas, l.pack, l.cajas * l.pack, l.precio, lineTotal(l)]);
+      });
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(det);
+    ws2['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 36 }, { wch: 8 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Pedidos');
+
+    XLSX.writeFile(wb, 'pedidos_' + month + '.xlsx');
+  } catch (e) {
+    alert('No se pudo generar el Excel (¿falló la conexión?). Probá de nuevo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Exportar a Excel';
+  }
+}
+
 /* ---------- arranque ---------- */
-copyBtn = $('copy');
-copyBtn.addEventListener('click', onCopy);
+loadBtn = $('load');
+loadBtn.addEventListener('click', onLoadPedido);
+$('tabResumen').addEventListener('click', function () { showTab('resumen'); });
+$('tabPrecios').addEventListener('click', function () { showTab('precios'); });
+// Resumen y Precios usan el mismo PIN
+[['rLockForm', 'rPinInput', 'rLockMsg', 'resumen'], ['pLockForm', 'pPinInput', 'pLockMsg', 'precios']].forEach(function (c) {
+  $(c[0]).addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if ($(c[1]).value.trim() === RESUMEN_PIN) {
+      setResUnlocked();
+      $(c[1]).value = '';
+      setMsg($(c[2]), '', '');
+      showTab(c[3]);
+    } else {
+      setMsg($(c[2]), 'PIN incorrecto.', 'err');
+      $(c[1]).select();
+    }
+  });
+});
+$('rMonth').addEventListener('change', loadMonth);
+$('rExport').addEventListener('click', exportExcel);
+$('rPriceSave').addEventListener('click', onSavePrecios);
 $('clear').addEventListener('click', function () {
   stock = {};
   saveStock();
@@ -841,6 +1372,7 @@ let startTab = 'pedido';
 try { if (sessionStorage.getItem('bp_tab') === 'ajustes') { startTab = 'ajustes'; sessionStorage.removeItem('bp_tab'); } } catch (e) {}
 showTab(startTab);
 refreshAdj();
+refreshPrecios();
 </script>
 </body>
 </html>
